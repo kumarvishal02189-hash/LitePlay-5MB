@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LitePlay 5MB</title>
+<style>
+  body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 16px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+  h2 { color: #00e5ff; margin-bottom: 10px; font-size: 20px; }
+  .btn { background: #003b46; color: #fff; border: 1px solid #00e5ff; padding: 12px; border-radius: 25px; text-align: center; font-weight: bold; cursor: pointer; margin-bottom: 12px; }
+  input[type="file"] { display: none; }
+  #playlist { flex: 1; overflow-y: auto; margin-bottom: 12px; }
+  .track { background: #0c131d; padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #162436; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track.active { border-color: #00e5ff; color: #00e5ff; }
+  .player { background: #080e16; padding: 14px; border-radius: 14px; text-align: center; border-top: 2px solid #00e5ff; }
+  audio { width: 100%; margin-top: 8px; accent-color: #00e5ff; }
+</style>
+</head>
+<body>
+
+  <h2>⚡ LitePlay 5MB Player</h2>
+  
+  <label class="btn">
+    📂 अपने फोन से गाने चुनें (Select Songs)
+    <input type="file" id="fileInput" multiple accept="audio/*,video/*">
+  </label>
+
+  <div id="playlist">
+    <div style="color: #778899; text-align: center; margin-top: 40px;">
+      ऊपर बटन दबाकर गाने या वीडियो सेलेक्ट करें।<br>स्क्रीन बंद होने पर भी बैकग्राउंड में बजेगा!
+    </div>
+  </div>
+
+  <div class="player">
+    <div id="nowPlaying" style="font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">कोई गाना चालू नहीं है</div>
+    <audio id="audioPlayer" controls></audio>
+  </div>
+
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const playlistEl = document.getElementById('playlist');
+  const audioPlayer = document.getElementById('audioPlayer');
+  const nowPlaying = document.getElementById('nowPlaying');
+  
+  let list = [];
+  let currentIndex = -1;
+
+  fileInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(f => {
+      list.push({ name: f.name, url: URL.createObjectURL(f) });
+    });
+    render();
+    if(currentIndex === -1 && list.length > 0) play(0);
+  });
+
+  function render() {
+    playlistEl.innerHTML = '';
+    list.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'track' + (index === currentIndex ? ' active' : '');
+      div.innerText = '🎵 ' + item.name;
+      div.onclick = () => play(index);
+      playlistEl.appendChild(div);
+    });
+  }
+
+  function play(index) {
+    currentIndex = index;
+    const t = list[index];
+    audioPlayer.src = t.url;
+    audioPlayer.play();
+    nowPlaying.innerText = "Playing: " + t.name;
+    render();
+  }
+
+  audioPlayer.onended = () => {
+    if(currentIndex + 1 < list.length) play(currentIndex + 1);
+  };
+</script>
+
+</body>
+</html>
