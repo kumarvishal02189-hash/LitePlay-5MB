@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LitePlay 5MB Pro</title>
+<style>
+  :root { --bg: #000000; --card: #0c131d; --accent: #00e5ff; --text: #ffffff; --sub: #7e99b5; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+  body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  header { background: #060a0f; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #162436; }
+  .logo { font-size: 18px; font-weight: bold; color: var(--accent); }
+  .btn-pill { background: #101a26; color: #fff; border: 1px solid var(--accent); padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: bold; }
+  .top-controls { padding: 12px; background: #05080c; display: flex; flex-direction: column; gap: 8px; }
+  .search-box { width: 100%; padding: 10px 14px; border-radius: 20px; border: 1px solid #1e2d3d; background: #0e151f; color: #fff; font-size: 14px; outline: none; }
+  #videoContainer { display: none; background: #000; position: relative; width: 100%; max-height: 40vh; border-bottom: 1px solid var(--accent); }
+  video { width: 100%; max-height: 40vh; display: block; margin: 0 auto; }
+  .close-vid { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.8); color: var(--accent); border: 1px solid var(--accent); padding: 4px 10px; border-radius: 12px; font-size: 11px; }
+  #playlist { flex: 1; overflow-y: auto; padding: 12px; }
+  .empty { text-align: center; color: var(--sub); padding: 40px 20px; font-size: 14px; line-height: 1.6; }
+  .track { background: var(--card); border: 1px solid #162436; border-radius: 14px; padding: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .track.active { border-color: var(--accent); box-shadow: 0 0 10px rgba(0,229,255,0.2); }
+  .track-info { flex: 1; overflow: hidden; padding-right: 10px; }
+  .track-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track-sub { font-size: 11px; color: var(--sub); margin-top: 3px; }
+  .player-bar { background: #080e16; border-top: 2px solid var(--accent); padding: 10px 14px 16px; }
+  .seek-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--sub); margin-bottom: 8px; }
+  input[type="range"] { flex: 1; accent-color: var(--accent); height: 4px; }
+  .now-title { font-size: 13px; font-weight: bold; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; text-align: center; }
+  .controls { display: flex; justify-content: space-around; align-items: center; }
+  .ctrl-btn { background: #101a26; color: #fff; border: 1px solid #243b55; width: 42px; height: 42px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .ctrl-btn.play { width: 50px; height: 50px; border-color: var(--accent); font-size: 20px; background: #002b36; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ LitePlay Pro</div>
+  <button class="btn-pill" onclick="toggleRepeat()" id="repBtn">🔁 Repeat: ALL</button>
+</header>
+
+<div class="top-controls">
+  <label class="btn-pill" style="text-align:center; background:#003b46; padding:12px; font-size:14px;">
+    📂 अपने फोन से गाने या वीडियो चुनें (Select Media)
+    <input type="file" id="fileInput" multiple accept="audio/*,video/*,.mp3,.flac,.wav,.ogg,.m4a,.mp4,.mkv,.webm" style="display:none">
+  </label>
+  <input type="text" id="searchBox" class="search-box" placeholder="🔍 लिस्ट में गाना खोजें..." oninput="renderList()">
+</div>
+
+<div id="videoContainer">
+  <video id="mediaPlayer" playsinline></video>
+  <button class="close-vid" onclick="hideVideo()">🎧 वीडियो छिपाएं (केवल ऑडियो)</button>
+</div>
+
+<div id="playlist">
+  <div class="empty">
+    🎵 ऊपर दिए गए बटन को दबाकर अपने फोन के गाने या वीडियो सेलेक्ट करें।<br><br>
+    ✅ स्क्रीन बंद होने पर भी बैकग्राउंड में गाना बजता रहेगा!<br>
+    ✅ कोई झंझट नहीं, एकदम मक्खन चलेगा।
+  </div>
+</div>
+
+<div class="player-bar">
+  <div class="now-title" id="nowPlaying">कोई गाना सेलेक्ट नहीं है</div>
+  <div class="seek-row">
+    <span id="curTime">00:00</span>
+    <input type="range" id="seekBar" value="0" min="0" step="1">
+    <span id="durTime">00:00</span>
+  </div>
+  <div class="controls">
+    <button class="ctrl-btn" onclick="prevTrack()">⏮</button>
+    <button class="ctrl-btn" onclick="seekRelative(-10)">⏪</button>
+    <button class="ctrl-btn play" onclick="togglePlay()" id="playBtn">▶️</button>
+    <button class="ctrl-btn" onclick="seekRelative(10)">⏩</button>
+    <button class="ctrl-btn" onclick="nextTrack()">⏭</button>
+  </div>
+</div>
+
+<script>
+  const player = document.getElementById('mediaPlayer');
+  const fileInput = document.getElementById('fileInput');
+  const playlistEl = document.getElementById('playlist');
+  const seekBar = document.getElementById('seekBar');
+  const playBtn = document.getElementById('playBtn');
+  const videoContainer = document.getElementById('videoContainer');
+
+  let tracks = [];
+  let currentIndex = -1;
+  let repeatMode = 'ALL';
+
+  fileInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    files.forEach(f => {
+      tracks.push({
+        name: f.name.replace(/\.[^/.]+$/, ""),
+        type: f.type.startsWith('video') || /\.(mp4|mkv|webm|mov|avi)$/i.test(f.name) ? 'video' : 'audio',
+        url: URL.createObjectURL(f),
+        size: (f.size / (1024*1024)).toFixed(1) + ' MB'
+      });
+    });
+    renderList();
+    if (currentIndex === -1 && tracks.length > 0) playTrack(0);
+  });
+
+  function renderList() {
+    const q = document.getElementById('searchBox').value.toLowerCase();
+    playlistEl.innerHTML = '';
+    const filtered = tracks.map((t, i) => ({...t, index: i})).filter(t => t.name.toLowerCase().includes(q));
+    if (!filtered.length) {
+      playlistEl.innerHTML = '<div class="empty">कोई फाइल नहीं मिली।</div>';
+      return;
+    }
+    filtered.forEach(t => {
+      const div = document.createElement('div');
+      div.className = 'track' + (t.index === currentIndex ? ' active' : '');
+      div.innerHTML = `
+        <div class="track-info">
+          <div class="track-title">${t.type === 'video' ? '🎬' : '🎵'} ${t.name}</div>
+          <div class="track-sub">${t.type.toUpperCase()} • ${t.size}</div>
+        </div>
+        <div style="color:#00e5ff; font-size:16px;">${t.index === currentIndex && !player.paused ? '🔊' : '▶️'}</div>
+      `;
+      div.onclick = () => playTrack(t.index);
+      playlistEl.appendChild(div);
+    });
+  }
+
+  function playTrack(idx) {
+    if (idx < 0 || idx >= tracks.length) return;
+    currentIndex = idx;
+    const t = tracks[idx];
+    player.src = t.url;
+    document.getElementById('nowPlaying').innerText = (t.type === 'video' ? '🎬 ' : '🎵 ') + t.name;
+    videoContainer.style.display = t.type === 'video' ? 'block' : 'none';
+    player.play();
+    renderList();
+  }
+
+  function togglePlay() {
+    if (!tracks.length) return;
+    if (player.paused) player.play(); else player.pause();
+  }
+
+  player.onplay = () => { playBtn.innerText = '⏸'; renderList(); };
+  player.onpause = () => { playBtn.innerText = '▶️'; renderList(); };
+
+  player.ontimeupdate = () => {
+    seekBar.max = Math.floor(player.duration || 0);
+    seekBar.value = Math.floor(player.currentTime || 0);
+    document.getElementById('curTime').innerText = fmt(player.currentTime);
+    document.getElementById('durTime').innerText = fmt(player.duration);
+  };
+
+  seekBar.oninput = () => { player.currentTime = seekBar.value; };
+
+  player.onended = () => {
+    if (repeatMode === 'ONE') { player.currentTime = 0; player.play(); }
+    else nextTrack();
+  };
+
+  function nextTrack() {
+    if (!tracks.length) return;
+    if (currentIndex + 1 < tracks.length) playTrack(currentIndex + 1);
+    else if (repeatMode === 'ALL') playTrack(0);
+  }
+
+  function prevTrack() {
+    if (!tracks.length) return;
+    if (player.currentTime > 3) { player.currentTime = 0; return; }
+    playTrack((currentIndex - 1 + tracks.length) % tracks.length);
+  }
+
+  function seekRelative(sec) { player.currentTime = Math.max(0, player.currentTime + sec); }
+  function hideVideo() { videoContainer.style.display = 'none'; }
+
+  function toggleRepeat() {
+    repeatMode = repeatMode === 'ALL' ? 'ONE' : 'ALL';
+    document.getElementById('repBtn').innerText = '🔁 Repeat: ' + repeatMode;
+  }
+
+  function fmt(s) {
+    if (!s || isNaN(s)) return '00:00';
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+    return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+  }
+</script>
+</body>
+</html>
